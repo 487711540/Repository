@@ -493,3 +493,120 @@ def classes():
     }
 
     return jsonify({'code': 200, 'msg': "成功", 'data': categories})
+
+# ————————————————————————————————————————————————————————————————————————————————
+@bp.route('/search', methods=['POST'])  # 搜索食物内容
+def search_food():
+    # Get the search keyword from the request
+    key = request.form.get('key', '')
+
+    # Query the database for food items with matching names
+    foods = Food.query.filter(Food.name.ilike(f'%{key}%')).all()
+
+    # Prepare the response data
+    food_list = []
+    for food in foods:
+        food_list.append(food.name)
+
+    return jsonify({'code': 200, 'msg': '成功', 'data': food_list})
+
+
+@bp.route('/comment', methods=['POST'])  # 发表评论
+def post_comment():
+    # Get data from request
+    user_name = request.form.get('username')
+    food_name = request.form.get('dishname')
+    content = request.form.get('comment')
+
+    # Validate input
+    if not user_name or not food_name or not content:
+        return jsonify({'code': 200, 'msg': '请输入评论'})
+
+    # Check if user and food exist
+    user = User.query.filter_by(username=user_name).first()
+    food = Food.query.filter_by(name=food_name).first()
+    if not user or not food:
+        return jsonify({"msg": "User or food not found"}), 404
+
+    # Create new comment
+    new_comment = Comment(user_id=user.id, food_id=food.id, content=content)
+    db.session.add(new_comment)
+    db.session.commit()
+
+    return jsonify({'code': 200, 'msg': '成功'})
+
+
+@bp.route('/dishname_comment', methods=['POST'])  # 获取评论
+def get_food_evaluations():
+    food_name = request.form.get('dishname')
+    if not food_name:
+        return jsonify({'code': 200, 'msg': '错误'})
+    foods = Food.query.filter_by(name=food_name).first()
+    result = []
+
+    for food in foods.comments:
+        food_id = food.food_id
+        food_comments = food.content
+        users = User.query.filter_by(id=food.user_id).first()
+        rating = Rating.query.filter_by(food_id=food_id, user_id=users.id).first()
+        temp = [users.username, food_comments, rating.score]
+        result.append(temp)
+
+    return jsonify({'code': 200, 'msg': '成功', 'data': result})
+
+# __________________
+
+# @bp.route('/addfood', methods=['get']) # 批量上传脚本
+# def addCategory():
+#     # 指定目标文件夹的路径，使用双反斜杠或原始字符串
+#     folder_path = r'C:\Users\PC\Documents\WeChat Files\wxid_bdybechriykt22\FileStorage\File\2024-10\source\source\按菜品口味'
+#
+#     # 遍历指定文件夹下的所有文件
+#     for filename in os.listdir(folder_path):
+#         file_path = os.path.join(folder_path, filename)
+#
+#         # 检查是否是CSV文件
+#         if os.path.isfile(file_path) and filename.endswith('.csv'):
+#             print(f"处理文件: {filename}")
+#
+#             # 打开文件并读取内容
+#             with open(file_path, 'r', encoding='utf-8') as file:
+#                 for line in file:
+#                     # 将行中的逗号删除并转换为列表
+#                     elements = line.strip().replace('，', '').split(',')
+#                     elements = [elem.strip() for elem in elements if elem]  # 去掉空元素
+#
+#                     # 确保元素足够
+#                     if len(elements) < 5:
+#                         print(f"跳过无效行: {line}")
+#                         continue
+#
+#                     # 查找或创建食物
+#                     food1 = Food.query.filter_by(name=elements[0]).first()
+#                     if food1 is None:
+#                         food1 = Food(name=elements[0], description=elements[1], image=elements[2], big_type=elements[3])
+#                         db.session.add(food1)
+#
+#                     # 查找或创建口味
+#                     flavor = Flavor.query.filter_by(flavor_type=elements[4]).first()
+#                     if flavor is None:
+#                         flavor = Flavor(flavor_type=elements[4])
+#                         db.session.add(flavor)
+#
+#                     # 关联食物和口味
+#                     food_flavor_association = FoodFlavorAssociation.query.filter_by(food_id=food1.id,
+#                                                                                     flavor_id=flavor.id).first()
+#                     if food_flavor_association is None:
+#                         food_flavor_association = FoodFlavorAssociation(food_id=food1.id, flavor_id=flavor.id)
+#                         db.session.add(food_flavor_association)
+#
+#                 # 提交所有更改
+#                 db.session.commit()
+#
+#                 # try:
+#                 #     print(elements)
+#                 # except UnicodeEncodeError:
+#                 #     print("包含无法编码的字符。")
+#
+#     print("处理完成。")
+#     return jsonify({'code': 200, 'msg': "处理完成"})

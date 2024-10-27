@@ -1,4 +1,4 @@
-DATABASE = 'flask'
+DATABASE = 'flasktest'
 USERNAME = 'root'
 PASSWORD = '000000'
 HOST = 'localhost'
