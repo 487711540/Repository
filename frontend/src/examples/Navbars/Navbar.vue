@@ -3,16 +3,20 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import Breadcrumbs from "../Breadcrumbs.vue";
+import Mock from "mockjs";
+
+// Mock.js 模拟登录接口
+Mock.mock("/api/login", "post", {
+  success: true,
+  username: "MockUser123", // 模拟用户名
+});
 
 const showMenu = ref(false);
 const store = useStore();
 const isRTL = computed(() => store.state.isRTL);
-
 const route = useRoute();
 
-const currentRouteName = computed(() => {
-  return route.name;
-});
+const currentRouteName = computed(() => route.name);
 const currentDirectory = computed(() => {
   let dir = route.path.split("/")[1];
   return dir.charAt(0).toUpperCase() + dir.slice(1);
@@ -20,13 +24,27 @@ const currentDirectory = computed(() => {
 
 const minimizeSidebar = () => store.commit("sidebarMinimize");
 const toggleConfigurator = () => store.commit("toggleConfigurator");
+const closeMenu = () => setTimeout(() => (showMenu.value = false), 100);
 
-const closeMenu = () => {
-  setTimeout(() => {
-    showMenu.value = false;
-  }, 100);
+// 定义初始用户名为"游客"
+const username = ref("游客");
+
+// 登录功能
+const login = async () => {
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+    });
+    const data = await response.json();
+    if (data.success) {
+      username.value = data.username; // 更新用户名为登录后返回的模拟用户名
+    }
+  } catch (error) {
+    console.error("登录请求失败", error);
+  }
 };
 </script>
+
 <template>
   <nav
     class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl"
@@ -64,13 +82,13 @@ const closeMenu = () => {
         <ul class="navbar-nav justify-content-end">
           <li class="nav-item d-flex align-items-center">
             <router-link
-              :to="{ name: 'Signin' }"
+              to="#"
+              @click.prevent="login"
               class="px-0 nav-link font-weight-bold text-white"
               target="_blank"
             >
               <i class="fa fa-user" :class="isRTL ? 'ms-sm-2' : 'me-sm-2'"></i>
-          
-              <span  class="d-sm-inline d-none">尝试登陆你的原神吧</span>
+              <span class="d-sm-inline d-none">{{ username }}</span>
             </router-link>
           </li>
           <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
@@ -221,3 +239,5 @@ const closeMenu = () => {
     </div>
   </nav>
 </template>
+
+<style scoped></style>

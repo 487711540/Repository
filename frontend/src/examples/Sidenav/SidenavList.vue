@@ -59,17 +59,7 @@ const getRoute = () => {
         </sidenav-item>
       </li>
 
-      <li class="nav-item">
-        <sidenav-item
-          to="/Personalization/:id"
-          :class="getRoute() === 'Personalization/:id' ? 'active' : ''"
-          :navText="'个性化推荐'"
-        >
-        <template v-slot:icon>
-            <i class="ni ni-zoom-split-in text-success text-sm opacity-10"></i>
-          </template>
-        </sidenav-item>
-      </li>
+
 
       <li class="nav-item">
         <sidenav-item

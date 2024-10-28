@@ -28,14 +28,12 @@ Mock.mock("http://localhost:5000/change", "post", (options) => {
 
 const router = useRouter();
 
-const nickname = ref("");
 const username = ref("");
 const password = ref("");
 
 // 修改提交函数
 const change = async () => {
     const payload = {
-        nickname: nickname.value,
         username: username.value,
         password: password.value,
     };
@@ -61,10 +59,7 @@ const change = async () => {
     <div class="container">
         <h1>修改用户信息</h1>
 
-        <div class="input-container">
-            <label for="nickname">昵称</label>
-            <argon-input v-model="nickname" id="nickname" type="text" placeholder="输入昵称" name="nickname" size="lg" />
-        </div>
+
 
         <div class="input-container">
             <label for="username">账号</label>
