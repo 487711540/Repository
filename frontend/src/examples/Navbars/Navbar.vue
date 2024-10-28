@@ -1,18 +1,14 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useStore } from "vuex";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import Breadcrumbs from "../Breadcrumbs.vue";
 import Mock from "mockjs";
-
-// Mock.js 模拟登录接口
-Mock.mock("/api/login", "post", {
-  success: true,
-  username: "MockUser123", // 模拟用户名
-});
+import { mockUserDatabase } from "../../views/mockUserDatabase";
 
 const showMenu = ref(false);
 const store = useStore();
+const router = useRouter();
 const isRTL = computed(() => store.state.isRTL);
 const route = useRoute();
 
@@ -29,20 +25,37 @@ const closeMenu = () => setTimeout(() => (showMenu.value = false), 100);
 // 定义初始用户名为"游客"
 const username = ref("游客");
 
-// 登录功能
-const login = async () => {
-  try {
-    const response = await fetch("/api/login", {
-      method: "POST",
-    });
-    const data = await response.json();
-    if (data.success) {
-      username.value = data.username; // 更新用户名为登录后返回的模拟用户名
-    }
-  } catch (error) {
-    console.error("登录请求失败", error);
+// 跳转到登录界面
+const goToLogin = () => {
+  router.push({ name: 'Signin' });
+};
+
+// 模拟登录成功后更新用户名
+const login = (usernameFromDb) => {
+  if (usernameFromDb) {
+    username.value = usernameFromDb;
   }
 };
+
+// Mock 登录功能
+Mock.mock("http://localhost:5000/login", "post", (options) => {
+  const { username: inputUsername, password } = JSON.parse(options.body);
+  const user = mockUserDatabase.find(user => user.username === inputUsername && user.password === password);
+
+  if (user) {
+    login(user.username); // 成功登录后更新用户名
+    return {
+      status: 200,
+      message: "登录成功",
+      username: user.username,
+    };
+  } else {
+    return {
+      status: 401,
+      message: "登录失败，账号或密码错误",
+    };
+  }
+});
 </script>
 
 <template>
@@ -83,7 +96,7 @@ const login = async () => {
           <li class="nav-item d-flex align-items-center">
             <router-link
               to="#"
-              @click.prevent="login"
+              @click.prevent="username === '游客' ? goToLogin() : login()"
               class="px-0 nav-link font-weight-bold text-white"
               target="_blank"
             >
