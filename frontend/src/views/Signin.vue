@@ -45,7 +45,7 @@ const handleLogin = async () => {
     // 根据后端返回信息判断登录状态
     if (response.data.code === 200) {
       if (response.data.msg === "登录成功") {
-        console.log("后端返回的数据:", response.data); // 查看完整返回数据
+        console.log("后端返回的数据:", response.data.username); // 查看完整返回数据
         // 将用户名存入 Vuex
         store.commit("setUsername", response.data.username); // 使用返回的用户名
         console.log("登录成功:", response.data.username); // 检查这里的值

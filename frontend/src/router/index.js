@@ -29,7 +29,7 @@ const routes = [
     component: Collection,
   },
  {
-    path: "/Personalization/:id",
+    path: "/Personalization/:name",
     name: "个性化推荐",
     component: Personalization,
   },
