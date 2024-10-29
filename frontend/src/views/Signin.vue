@@ -1,44 +1,21 @@
 <script setup>
-import { onBeforeUnmount, onBeforeMount } from "vue";
+import { onBeforeUnmount, onBeforeMount, ref } from "vue";
 import { useStore } from "vuex";
+import { useRouter } from "vue-router";
+import axios from "axios";
 import ArgonInput from "@/components/ArgonInput.vue";
 import ArgonSwitch from "@/components/ArgonSwitch.vue";
 import ArgonButton from "@/components/ArgonButton.vue";
-import { useRouter } from "vue-router";
-import axios from "axios";
-import { ref } from "vue";
-import Mock from "mockjs";
-import { mockUserDatabase } from "./mockUserDatabase";
 
-// 模拟登录接口，检查用户数据库中的信息
-Mock.mock("http://localhost:5000/login", "post", (options) => {
-  const { username, password } = JSON.parse(options.body);
-
-  // 检查用户名和密码是否匹配
-  const user = mockUserDatabase.find(user => user.username === username && user.password === password);
-
-  if (user) {
-    return {
-      status: 200,
-      message: "登录成功",
-      token: "mock-token-123456",
-    };
-  } else {
-    return {
-      status: 401,
-      message: "登录失败，账号或密码错误",
-    };
-  }
-});
-
+// 初始化 Vuex Store 和路由
 const store = useStore();
 const router = useRouter();
 
-// 绑定输入框的数据
+// 输入框绑定数据
 const username = ref("");
 const password = ref("");
 
-// 组件挂载前的处理
+// 组件挂载前和卸载时的显示设置
 onBeforeMount(() => {
   store.state.hideConfigButton = true;
   store.state.showNavbar = false;
@@ -56,25 +33,35 @@ onBeforeUnmount(() => {
 // 登录处理函数
 const handleLogin = async () => {
   try {
-    const response = await axios.post("http://localhost:5000/login", {
-      username: username.value,
-      password: password.value,
+    // 将用户名和密码转换为 URL 编码的表单数据格式
+    const formData = new URLSearchParams();
+    formData.append("username", username.value);
+    formData.append("password", password.value);
+
+    const response = await axios.post("http://127.0.0.1:5000/login", formData, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     });
 
-    if (response.data.status === 200) {
-      console.log("登录成功:", response.data);
-      store.commit("setToken", response.data.token);
-      router.push("/homepage");
+    // 根据后端返回信息判断登录状态
+    if (response.data.code === 200) {
+      if (response.data.msg === "登录成功") {
+        console.log("登录成功:", response.data);
+        router.push("/homepage");  // 登录成功后跳转页面
+      } else {
+        alert(response.data.msg);  // 显示用户名或密码错误的提示
+      }
     } else {
-      alert(response.data.message || "登录失败，请检查账号和密码");
+      alert("登录失败，请检查账号和密码");
     }
   } catch (error) {
-    console.error("登录失败:", error);
+    console.error("登录请求失败:", error);
     alert("登录失败，请检查网络或服务器设置");
   }
 };
 
-// 注册跳转方法
+// 注册和返回功能
 const goToSignup = () => {
   router.push("/signup");
 };
@@ -83,7 +70,6 @@ const goBack = () => {
   router.push("/HomePage");
 };
 </script>
-
 
 <template>
   <div class="container top-0 position-sticky z-index-sticky">
