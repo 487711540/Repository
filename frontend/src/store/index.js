@@ -17,9 +17,13 @@ export default createStore({
     showFooter: true,
     showMain: true,
     layout: "default",
-    token: null, // 新增 state 用于存储 token
+    username:"游客",
   },
   mutations: {
+    setUsername(state, username) {
+      console.log('调用 setUsername:', username); // 打印传入的用户名
+      state.username = username;
+    },
     toggleConfigurator(state) {
       state.showConfig = !state.showConfig;
     },
@@ -41,20 +45,11 @@ export default createStore({
     navbarFixed(state) {
       state.isNavFixed = !state.isNavFixed;
     },
-    // 新增 setToken 方法
-    setToken(state, token) {
-      state.token = token; // 将 token 保存到 state 中
-    },
   },
   actions: {
     toggleSidebarColor({ commit }, payload) {
       commit("sidebarType", payload);
     },
   },
-  getters: {
-    // 新增 token 的 getter
-    getToken(state) {
-      return state.token;
-    },
-  },
+ 
 });

@@ -1,98 +1,3 @@
-<script setup>
-import { ref, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import Mock from 'mockjs';
-import axios from 'axios';
-
-const isFavorited = ref(false); // 记录是否已收藏
-const router = useRouter(); // 获取路由实例
-
-// Mock收藏接口
-Mock.mock('http://localhost:5000/add_to_collection', 'post', (options) => {
-  const { foodName, timestamp } = JSON.parse(options.body);
-  return {
-    status: 200,
-    message: `已成功收藏 ${foodName} 于 ${timestamp}`,
-    data: { dishname: foodName, category: '未知分类', date: timestamp }
-  };
-});
-
-// 获取路由参数
-const route = useRoute();
-const foodId = Number(route.params.id);
-
-// 示例食物数据
-const foods = [
-  { id: 1, name: "食物 A", ingredients: "鸡肉, 蘑菇, 酱油", images: ["https://via.placeholder.com/300"] },
-  { id: 2, name: "食物 B", ingredients: "牛肉, 青椒, 大葱", images: ["https://via.placeholder.com/300"] },
-];
-
-// 获取食物信息
-const food = foods.find(f => f.id === foodId) || { name: "未知食物", ingredients: "", images: [] };
-const foodImages = ref(food.images);
-
-// 评论数据
-const comments = ref([
-  { user: "User2", avatar: "https://via.placeholder.com/50", message: "味道还不错，但略微偏咸。", rating: 4.5 },
-  { user: "User1", avatar: "https://via.placeholder.com/50", message: "这道菜非常好吃！", rating: 5 },
-]);
-
-const newComment = ref("");
-const valueHalf = ref(); // 用于评分组件的变量
-
-// 收藏功能
-const addToCollection = async () => {
-  const foodName = food.name;
-  const timestamp = new Date().toLocaleString();
-
-  try {
-    const response = await axios.post('http://localhost:5000/add_to_collection', { foodName, timestamp });
-    if (response.status === 200) {
-      isFavorited.value = true;
-      alert(response.data.message);
-      // 跳转到我的收藏页面并传递收藏信息
-      router.push({ 
-        path: '/collection', 
-        query: { foodName, timestamp } // 传递菜名和时间
-      });
-    } else {
-      console.error('添加收藏失败:', response.data.message);
-    }
-  } catch (error) {
-    console.error('添加收藏时出错:', error);
-  }
-};
-
-// 评分变化处理函数
-const change = (value) => {
-  console.log("评分已更改为:", value);
-  valueHalf.value = value;
-};
-
-// 添加评论
-const addComment = () => {
-  if (newComment.value.trim() === "") {
-    alert("评论内容不能为空。");
-    return;
-  }
-  comments.value.unshift({
-    user: "当前用户",
-    avatar: "https://via.placeholder.com/50",
-    message: newComment.value,
-    rating: valueHalf.value || 0,
-  });
-  newComment.value = "";
-  scrollToTop();
-};
-
-const scrollToTop = () => {
-  nextTick(() => {
-    const commentsArea = document.querySelector('.comments-area');
-    commentsArea.scrollTop = 0;
-  });
-};
-</script>
-
 <template>
   <div class="container">
     <div class="row">
@@ -176,56 +81,113 @@ const scrollToTop = () => {
   </div>
 </template>
 
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
+
+const route = useRoute();
+
+const food = ref({});
+const foodImages = ref([]);
+const comments = ref([]);
+const newComment = ref('');
+const isFavorited = ref(false);
+const valueHalf = ref(0);
+
+// 组件挂载时获取食物信息
+onMounted(async () => {
+  const foodName = route.params.foodName; // 从路由参数中获取食物名称
+  await fetchFoodData(foodName);
+  await fetchComments(foodName);
+});
+
+// 获取食物数据
+const fetchFoodData = async (name) => {
+  try {
+    const response = await axios.get(`http://localhost:5000/food?name=${name}`);
+    if (response.data.code === 200) {
+      food.value = response.data.data;
+      foodImages.value = food.value.images; // 假设图片数组
+    } else {
+      console.error(response.data.msg);
+    }
+  } catch (error) {
+    console.error('获取食物数据失败:', error);
+  }
+};
+
+// 获取评论数据
+const fetchComments = async (foodName) => {
+  try {
+    const response = await axios.get(`http://localhost:5000/comments?foodName=${foodName}`);
+    if (response.data.code === 200) {
+      comments.value = response.data.data; // 评论数据
+    } else {
+      console.error(response.data.msg);
+    }
+  } catch (error) {
+    console.error('获取评论数据失败:', error);
+  }
+};
+
+// 添加评论
+const addComment = async () => {
+  if (newComment.value.trim() === '') return;
+  
+  // 发送评论数据到后端
+  try {
+    const response = await axios.post('http://localhost:5000/comments', {
+      foodName: food.value.name,
+      message: newComment.value,
+      rating: valueHalf.value,
+    });
+    if (response.data.code === 200) {
+      comments.value.push({
+        user: '当前用户', // 替换为实际用户信息
+        avatar: '用户头像路径', // 替换为实际用户头像
+        message: newComment.value,
+        rating: valueHalf.value,
+      });
+      newComment.value = ''; // 清空输入框
+      valueHalf.value = 0; // 重置评分
+    } else {
+      console.error(response.data.msg);
+    }
+  } catch (error) {
+    console.error('添加评论失败:', error);
+  }
+};
+
+// 添加到收藏
+const addToCollection = async () => {
+  // 处理收藏逻辑
+  isFavorited.value = true;
+};
+
+// 评分改变
+const change = (value) => {
+  console.log(`评分改变: ${value}`);
+};
+</script>
+
 <style scoped>
-/* 左侧固定样式 */
-.col-lg-4 {
-  height: fit-content;
+.container {
+  padding: 20px;
 }
 
-/* 收藏按钮 */
-.btn-sm {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
-}
-
-/* 固定输入框样式 */
 .fixed-input-container {
   position: sticky;
-  bottom: 0;
+  bottom: 20px;
+  left: 0;
+  right: 0;
   background-color: white;
-  padding: 10px;
-  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.fixed-input-container input {
-  width: 75%;
-  margin-right: 10px;
-}
-
-/* 评论区样式 */
 .comments-area {
+  max-height: 400px;
   overflow-y: auto;
-  max-height: 240px;
-  height: 240px;
 }
-
-/* 图片样式 */
-.carousel-img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-radius: 15px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* 固定输入框样式 */
-.fixed-input-container {
-  position: sticky; /* 固定在底部 */
-  bottom: 0;
-  background-color: white; /* 背景颜色 */
-  padding: 10px;
-  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
-  margin-top: 20px; /* 增加上边距 */
-}
-
 </style>

@@ -30,10 +30,8 @@ onBeforeUnmount(() => {
   store.state.showFooter = true;
 });
 
-// 登录处理函数
 const handleLogin = async () => {
   try {
-    // 将用户名和密码转换为 URL 编码的表单数据格式
     const formData = new URLSearchParams();
     formData.append("username", username.value);
     formData.append("password", password.value);
@@ -47,10 +45,13 @@ const handleLogin = async () => {
     // 根据后端返回信息判断登录状态
     if (response.data.code === 200) {
       if (response.data.msg === "登录成功") {
-        console.log("登录成功:", response.data);
-        router.push("/homepage");  // 登录成功后跳转页面
+        console.log("后端返回的数据:", response.data); // 查看完整返回数据
+        // 将用户名存入 Vuex
+        store.commit("setUsername", response.data.username); // 使用返回的用户名
+        console.log("登录成功:", response.data.username); // 检查这里的值
+        router.push("/homepage");
       } else {
-        alert(response.data.msg);  // 显示用户名或密码错误的提示
+        alert(response.data.msg); // 显示用户名或密码错误的提示
       }
     } else {
       alert("登录失败，请检查账号和密码");

@@ -3,8 +3,6 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 import Breadcrumbs from "../Breadcrumbs.vue";
-import Mock from "mockjs";
-import { mockUserDatabase } from "../../views/mockUserDatabase";
 
 const showMenu = ref(false);
 const store = useStore();
@@ -12,7 +10,7 @@ const router = useRouter();
 const isRTL = computed(() => store.state.isRTL);
 const route = useRoute();
 
-const currentRouteName = computed(() => route.name);
+const username = computed(() => store.state.username);
 const currentDirectory = computed(() => {
   let dir = route.path.split("/")[1];
   return dir.charAt(0).toUpperCase() + dir.slice(1);
@@ -22,40 +20,17 @@ const minimizeSidebar = () => store.commit("sidebarMinimize");
 const toggleConfigurator = () => store.commit("toggleConfigurator");
 const closeMenu = () => setTimeout(() => (showMenu.value = false), 100);
 
-// 定义初始用户名为"游客"
-const username = ref("游客");
-
 // 跳转到登录界面
 const goToLogin = () => {
   router.push({ name: 'Signin' });
 };
 
-// 模拟登录成功后更新用户名
+// 登录成功后更新用户名
 const login = (usernameFromDb) => {
   if (usernameFromDb) {
-    username.value = usernameFromDb;
+    store.commit("setUsername", usernameFromDb); // 使用 Vuex 更新用户名
   }
 };
-
-// Mock 登录功能
-Mock.mock("http://localhost:5000/login", "post", (options) => {
-  const { username: inputUsername, password } = JSON.parse(options.body);
-  const user = mockUserDatabase.find(user => user.username === inputUsername && user.password === password);
-
-  if (user) {
-    login(user.username); // 成功登录后更新用户名
-    return {
-      status: 200,
-      message: "登录成功",
-      username: user.username,
-    };
-  } else {
-    return {
-      status: 401,
-      message: "登录失败，账号或密码错误",
-    };
-  }
-});
 </script>
 
 <template>
