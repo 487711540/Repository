@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 import Breadcrumbs from "../Breadcrumbs.vue";
+import axios from "axios"; // 确保引入axios
 
 const showMenu = ref(false);
 const store = useStore();
@@ -16,11 +17,14 @@ const currentDirectory = computed(() => {
   return dir.charAt(0).toUpperCase() + dir.slice(1);
 });
 
+// 搜索相关
+const searchKey = ref('');
+const searchResults = ref([]); // 存储搜索结果
+
 const minimizeSidebar = () => store.commit("sidebarMinimize");
 const toggleConfigurator = () => store.commit("toggleConfigurator");
 const closeMenu = () => setTimeout(() => (showMenu.value = false), 100);
 
-// 跳转到登录界面
 const goToLogin = () => {
   router.push({ name: 'Signin' });
 };
@@ -28,64 +32,87 @@ const goToLogin = () => {
 // 登录成功后更新用户名
 const login = (usernameFromDb) => {
   if (usernameFromDb) {
-    store.commit("setUsername", usernameFromDb); // 使用 Vuex 更新用户名
+    store.commit("setUsername", usernameFromDb);
   }
 };
+
+// 处理搜索输入变化
+const handleSearchInput = async () => {
+  if (searchKey.value) {
+    const formData = new FormData();
+    formData.append('key', searchKey.value);
+
+    try {
+      const response = await axios.post('http://localhost:5000/search', formData);
+      if (response.data.code === 200) {
+        searchResults.value = response.data.data; // 更新搜索结果
+        console.log(response.data);
+      }
+    } catch (error) {
+      console.error('搜索请求失败:', error);
+    }
+  } else {
+    searchResults.value = []; // 清空结果
+  }
+};
+
+// 点击搜索结果
+const handleSearchResultClick = (dishname) => {
+  searchKey.value = dishname; // 设置输入框的值
+  searchResults.value = []; // 清空搜索结果
+  navigateToFoodDetail(dishname); // 跳转到详细界面
+};
+
+// 点击放大镜图标
+const handleSearchIconClick = () => {
+  if (searchKey.value) {
+    navigateToFoodDetail(searchKey.value); // 跳转到当前输入的食物详情
+    console.log('666');
+    
+  }
+};
+
+// 通用跳转函数
+const navigateToFoodDetail = (dishname) => {
+  router.replace({ name: '个性化推荐', params: { name: dishname } }); // 跳转到个性化推荐页面
+  
+ 
+};
+
 </script>
 
 <template>
-  <nav
-    class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl"
-    :class="isRTL ? 'top-0 position-sticky z-index-sticky' : ''"
-    v-bind="$attrs"
-    id="navbarBlur"
-    data-scroll="true"
-  >
+  <nav class="navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl"
+    :class="isRTL ? 'top-0 position-sticky z-index-sticky' : ''" v-bind="$attrs" id="navbarBlur" data-scroll="true">
     <div class="px-3 py-1 container-fluid">
-      <breadcrumbs
-        :current-page="currentRouteName"
-        :current-directory="currentDirectory"
-      />
+      <breadcrumbs :current-page="currentRouteName" :current-directory="currentDirectory" />
 
-      <div
-        class="mt-2 collapse navbar-collapse mt-sm-0 me-md-0 me-sm-4"
-        :class="isRTL ? 'px-0' : 'me-sm-4'"
-        id="navbar"
-      >
-        <div
-          class="pe-md-3 d-flex align-items-center"
-          :class="isRTL ? 'me-md-auto' : 'ms-md-auto'"
-        >
+      <div class="mt-2 collapse navbar-collapse mt-sm-0 me-md-0 me-sm-4" :class="isRTL ? 'px-0' : 'me-sm-4'"
+        id="navbar">
+        <div class="pe-md-3 d-flex align-items-center" :class="isRTL ? 'me-md-auto' : 'ms-md-auto'">
           <div class="input-group">
-            <span class="input-group-text text-body">
+            <span class="input-group-text text-body" @click="handleSearchIconClick">
               <i class="fas fa-search" aria-hidden="true"></i>
             </span>
-            <input
-              type="text"
-              class="form-control"
-              :placeholder="isRTL ? '' : '在这里输入试试呢...'"
-            />
+            <input type="text" v-model="searchKey" @input="handleSearchInput" class="form-control"
+              :placeholder="isRTL ? '' : '在这里输入试试呢...'" />
           </div>
+          <ul class="dropdown-menu" v-if="searchResults.length">
+            <li v-for="food in searchResults" :key="food">
+              <a href="#" @click.prevent="handleSearchResultClick(food)" class="dropdown-item">{{ food }}</a>
+            </li>
+          </ul>
         </div>
         <ul class="navbar-nav justify-content-end">
           <li class="nav-item d-flex align-items-center">
-            <router-link
-              to="#"
-              @click.prevent="username === '游客' ? goToLogin() : login()"
-              class="px-0 nav-link font-weight-bold text-white"
-              target="_blank"
-            >
+            <router-link to="#" @click.prevent="username === '游客' ? goToLogin() : login()"
+              class="px-0 nav-link font-weight-bold text-white" target="_blank">
               <i class="fa fa-user" :class="isRTL ? 'ms-sm-2' : 'me-sm-2'"></i>
               <span class="d-sm-inline d-none">{{ username }}</span>
             </router-link>
           </li>
           <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
-            <a
-              href="#"
-              @click="minimizeSidebar"
-              class="p-0 nav-link text-white"
-              id="iconNavbarSidenav"
-            >
+            <a href="#" @click="minimizeSidebar" class="p-0 nav-link text-white" id="iconNavbarSidenav">
               <div class="sidenav-toggler-inner">
                 <i class="sidenav-toggler-line bg-white"></i>
                 <i class="sidenav-toggler-line bg-white"></i>
@@ -98,36 +125,18 @@ const login = (usernameFromDb) => {
               <i class="cursor-pointer fa fa-cog fixed-plugin-button-nav"></i>
             </a>
           </li>
-          <li
-            class="nav-item dropdown d-flex align-items-center"
-            :class="isRTL ? 'ps-2' : 'pe-2'"
-          >
-            <a
-              href="#"
-              class="p-0 nav-link text-white"
-              :class="[showMenu ? 'show' : '']"
-              id="dropdownMenuButton"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              @click="showMenu = !showMenu"
-              @blur="closeMenu"
-            >
+          <li class="nav-item dropdown d-flex align-items-center" :class="isRTL ? 'ps-2' : 'pe-2'">
+            <a href="#" class="p-0 nav-link text-white" :class="[showMenu ? 'show' : '']" id="dropdownMenuButton"
+              data-bs-toggle="dropdown" aria-expanded="false" @click="showMenu = !showMenu" @blur="closeMenu">
               <i class="cursor-pointer fa fa-bell"></i>
             </a>
-            <ul
-              class="px-2 py-3 dropdown-menu dropdown-menu-end me-sm-n4"
-              :class="showMenu ? 'show' : ''"
-              aria-labelledby="dropdownMenuButton"
-            >
+            <ul class="px-2 py-3 dropdown-menu dropdown-menu-end me-sm-n4" :class="showMenu ? 'show' : ''"
+              aria-labelledby="dropdownMenuButton">
               <li class="mb-2">
                 <a class="dropdown-item border-radius-md" href="javascript:;">
                   <div class="py-1 d-flex">
                     <div class="my-auto">
-                      <img
-                        src="../../assets/img/team-2.jpg"
-                        class="avatar avatar-sm me-3"
-                        alt="user image"
-                      />
+                      <img src="../../assets/img/team-2.jpg" class="avatar avatar-sm me-3" alt="user image" />
                     </div>
                     <div class="d-flex flex-column justify-content-center">
                       <h6 class="mb-1 text-sm font-weight-normal">
@@ -146,11 +155,8 @@ const login = (usernameFromDb) => {
                 <a class="dropdown-item border-radius-md" href="javascript:;">
                   <div class="py-1 d-flex">
                     <div class="my-auto">
-                      <img
-                        src="../../assets/img/small-logos/logo-spotify.svg"
-                        class="avatar avatar-sm bg-gradient-dark me-3"
-                        alt="logo spotify"
-                      />
+                      <img src="../../assets/img/small-logos/logo-spotify.svg"
+                        class="avatar avatar-sm bg-gradient-dark me-3" alt="logo spotify" />
                     </div>
                     <div class="d-flex flex-column justify-content-center">
                       <h6 class="mb-1 text-sm font-weight-normal">
@@ -168,40 +174,19 @@ const login = (usernameFromDb) => {
               <li>
                 <a class="dropdown-item border-radius-md" href="javascript:;">
                   <div class="py-1 d-flex">
-                    <div
-                      class="my-auto avatar avatar-sm bg-gradient-secondary me-3"
-                    >
-                      <svg
-                        width="12px"
-                        height="12px"
-                        viewBox="0 0 43 36"
-                        version="1.1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlns:xlink="http://www.w3.org/1999/xlink"
-                      >
+                    <div class="my-auto avatar avatar-sm bg-gradient-secondary me-3">
+                      <svg width="12px" height="12px" viewBox="0 0 43 36" version="1.1"
+                        xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                         <title>credit-card</title>
-                        <g
-                          stroke="none"
-                          stroke-width="1"
-                          fill="none"
-                          fill-rule="evenodd"
-                        >
-                          <g
-                            transform="translate(-2169.000000, -745.000000)"
-                            fill="#FFFFFF"
-                            fill-rule="nonzero"
-                          >
+                        <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                          <g transform="translate(-2169.000000, -745.000000)" fill="#FFFFFF" fill-rule="nonzero">
                             <g transform="translate(1716.000000, 291.000000)">
                               <g transform="translate(453.000000, 454.000000)">
-                                <path
-                                  class="color-background"
+                                <path class="color-background"
                                   d="M43,10.7482083 L43,3.58333333 C43,1.60354167 41.3964583,0 39.4166667,0 L3.58333333,0 C1.60354167,0 0,1.60354167 0,3.58333333 L0,10.7482083 L43,10.7482083 Z"
-                                  opacity="0.593633743"
-                                />
-                                <path
-                                  class="color-background"
-                                  d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z"
-                                />
+                                  opacity="0.593633743" />
+                                <path class="color-background"
+                                  d="M0,16.125 L0,32.25 C0,34.2297917 1.60354167,35.8333333 3.58333333,35.8333333 L39.4166667,35.8333333 C41.3964583,35.8333333 43,34.2297917 43,32.25 L43,16.125 L0,16.125 Z M19.7083333,26.875 L7.16666667,26.875 L7.16666667,23.2916667 L19.7083333,23.2916667 L19.7083333,26.875 Z M35.8333333,26.875 L28.6666667,26.875 L28.6666667,23.2916667 L35.8333333,23.2916667 L35.8333333,26.875 Z" />
                               </g>
                             </g>
                           </g>

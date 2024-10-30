@@ -2,34 +2,27 @@
 import { useStore } from "vuex";
 import { activateDarkMode, deactivateDarkMode } from "@/assets/js/dark-mode";
 import { useRouter } from "vue-router";
-import Mock from "mockjs"; // 引入 Mock.js
 import axios from "axios"; // 引入 axios 用于发送请求
 
 const store = useStore();
 const router = useRouter();
 
-// 使用 Mock.js 模拟退出登录接口
-Mock.mock("http://localhost:5000/logout", "post", {
-    status: 200,
-    message: "退出登录成功",
-});
-
-// Mutations for Sidebar
+// 设置侧边栏类型的 Mutation
 const setSidebarType = (type) => store.commit("sidebarType", type);
 
-// Update sidebar color from dropdown
+// 更新侧边栏颜色
 const updateSidebarColor = (event) => {
     const color = event.target.value;
     document.querySelector("#sidenav-main").setAttribute("data-color", color);
 };
 
-// Update sidebar type from dropdown
+// 更新侧边栏类型
 const updateSidebarType = (event) => {
     const type = event.target.value;
     setSidebarType(type);
 };
 
-// Update theme mode from dropdown
+// 更新主题模式
 const updateThemeMode = (event) => {
     const mode = event.target.value;
     store.commit("darkMode", mode === "dark");
@@ -44,43 +37,29 @@ const updateThemeMode = (event) => {
     }
 };
 
-// Switch account from dropdown
-const switchAccount = (event) => {
-    const account = event.target.value;
-    console.log(`Switching to ${account}`);
-    // 可以在这里加入切换账号的逻辑
-};
-
-// Logout and navigate to the logout page
+// 注销
 const logout = async () => {
     try {
-        const response = await axios.post("http://localhost:5000/logout");
-
-        if (response.status === 200) {
-            console.log("退出登录成功");
-            // 清除前端用户数据，可以清空 Vuex 的用户信息
-            store.commit("setUser", null);
-            router.push("/Signin"); // 重定向到登录页面
+        const response = await axios.get("http://localhost:5000/logout");
+        if (response.data.code === 200) {
+            console.log("注销成功");
+            store.commit("setUsername", "游客"); // 设置为游客状态
+            router.push("/HomePage"); // 重定向到登录页面
         } else {
-            console.error("退出登录失败:", response.data.message);
+            console.error("注销失败:", response.data.msg);
         }
     } catch (error) {
-        console.error("退出登录时出错:", error);
+        console.error("注销时出错:", error);
     }
 };
 
-// Complete and navigate to the home page
-const complete = () => {
-    console.log("Complete configuration...");
-    router.push("/Billing");
-};
 </script>
 
 <template>
     <div class="configurator-container">
         <hr class="my-1 horizontal dark" />
 
-        <!-- Sidebar Backgrounds -->
+        <!-- 侧边栏背景 -->
         <div class="configurator-block">
             <div class="d-flex align-items-center mb-3 justify-content-center">
                 <h6 class="mb-0 me-2">侧边框颜色</h6>
@@ -95,7 +74,7 @@ const complete = () => {
                 </select>
             </div>
 
-            <!-- Sidenav Type -->
+            <!-- 侧边栏类型 -->
             <div class="d-flex align-items-center justify-content-center">
                 <h6 class="mb-0 me-2">侧边栏类型</h6>
                 <select class="form-select" @change="updateSidebarType($event)">
@@ -105,7 +84,7 @@ const complete = () => {
                 </select>
             </div>
 
-            <!-- Theme Mode (Light/Dark) -->
+            <!-- 主题模式 (白天/夜间) -->
             <div class="d-flex align-items-center justify-content-center mt-3">
                 <h6 class="mb-0 me-2">主题模式</h6>
                 <select class="form-select" @change="updateThemeMode($event)">
@@ -115,7 +94,7 @@ const complete = () => {
                 </select>
             </div>
 
-            <!-- Account Switch -->
+            <!-- 切换账号 -->
             <div class="d-flex align-items-center justify-content-center mt-3">
                 <h6 class="mb-0 me-2">切换账号</h6>
                 <select class="form-select" @change="switchAccount($event)">
@@ -126,7 +105,7 @@ const complete = () => {
                 </select>
             </div>
 
-            <!-- Buttons -->
+            <!-- 按钮组 -->
             <div class="button-group mt-4">
                 <button class="btn btn-danger w-100 mb-2" @click="logout">退出登录</button>
                 <button class="btn btn-success w-100" @click="complete">完成</button>

@@ -1,5 +1,10 @@
 import { createStore } from "vuex";
-
+// 获取 cookie 的函数
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
 export default createStore({
   state: {
     hideConfigButton: false,
@@ -17,7 +22,7 @@ export default createStore({
     showFooter: true,
     showMain: true,
     layout: "default",
-    username:"游客",
+    username: getCookie('username') || "游客",
   },
   mutations: {
     setUsername(state, username) {
