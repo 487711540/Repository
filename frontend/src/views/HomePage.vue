@@ -257,7 +257,7 @@ watch(selected4, async () => {
   text-align: center;
   padding: 20px;
   flex: 1;
-  background-color: rgb(15, 161, 125);
+  background-color: rgb(159, 226, 252);
 }
 
 .btn-refresh {
