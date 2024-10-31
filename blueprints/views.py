@@ -3,7 +3,7 @@ from math import *
 from flask import render_template, request, redirect, url_for, Blueprint, jsonify, make_response
 from sqlalchemy import null
 from sqlalchemy.testing.suite.test_reflection import users
-
+import random
 from exts import *
 from models import User, Food, Favorite, Rating, FoodFlavorAssociation, Flavor, Comment, FlavorPreference
 
@@ -31,7 +31,7 @@ def login():
 
         if username == users.username and password == users.password:
             # 设置cookie （未完成）
-            response = make_response(jsonify({'code': 200, 'msg': '登录成功'}))
+            response = make_response(jsonify({'code': 200, 'msg': '登录成功', 'username':username}))
             response.set_cookie('username', username, max_age=3600 * 24 * 7)
             return response
         else:
@@ -66,28 +66,24 @@ def register():
 # 个人主页(展示用户收藏页面)
 @bp.route('/selectfavorites', methods=['GET'])
 def personal():
-    # 获取cookies
-    cookies = request.cookies
-    # 如果cookies存在
-    if cookies.get('username'):
-        users = User.query.filter_by(username=cookies.get('username')).first()
+
+        users = User.query.filter_by(username=request.args.get('username')).first()
         # 创建用于存放收藏的食物名称和类型
         foods = []
 
         for favorite in users.favorites:
             food = Food.query.filter_by(id=favorite.food_id).first()
             # 查询食物口味所属表
-            for food_flavor_associations in food.food_flavor_association:
-                # 根据food_flavor_associations.flavor_id找到口味所属的类型
-                types = Flavor.query.filter_by(id=food_flavor_associations.flavor_id).first()
-                food_name_types = [food.name,food.big_type,types.flavor_type]
-                # 将收藏的食物名称和类型放入列表
-                foods.append(food_name_types)
+            # for food_flavor_associations in food.food_flavor_association:
+            #     # 根据food_flavor_associations.flavor_id找到口味所属的类型
+            #     types = Flavor.query.filter_by(id=food_flavor_associations.flavor_id).first()
+            #     food_name_types = [food.name,food.big_type,types.flavor_type]
+            #     # 将收藏的食物名称和类型放入列表
+            #     foods.append(food_name_types)
+            food_name_types = [food.name, food.big_type]
+            foods.append(food_name_types)
 
         return jsonify({'code': 200, 'msg': '成功', 'data': foods})
-    else:
-
-        return jsonify({'code': 200, 'msg': '失败'})
 
 
 # 注销
@@ -106,23 +102,16 @@ def logout():
 
 
 
-@bp.route('/choose1', methods=['POST'])
-def choose1():
-    a = request.form.get('tags')
-    b = request.form.getlist('tags')
-    return b
-
 
 # 注册时选择喜好
 @bp.route('/choose', methods=['POST'])
 def choose():
-    cookies = request.cookies
+
     users = User.query.filter_by(username=request.form.get('username')).first()
-    if cookies.get('username') == users.username:
-        if request.form.get('tags') == "":
-            return jsonify({'code': 200, 'msg': '请选择口味'})
+    if 1:
+
         if len(list(users.flavor_preferences)) != 0:
-            print(list(users.flavor_preferences))
+
             return jsonify({'code': 200, 'msg': '失败'})
         food = []
         for requests in request.form.getlist('tags'):
@@ -149,10 +138,9 @@ def choose():
 # 进行收藏
 @bp.route('/favorites', methods=['POST'])
 def collection():
-    cookies = request.cookies
-    # 如果cookies存在 并且和传递来的用户名一样
-    if cookies.get('username') and request.form.get('username') == cookies.get('username'):
-        users = User.query.filter_by(username=cookies.get('username')).first()
+
+    if 1:
+        users = User.query.filter_by(username=request.form.get('username')).first()
         foods = Food.query.filter_by(name=request.form.get('dishname')).first()
         # 检查是否重复收藏
         for favorite in users.favorites:
@@ -172,9 +160,9 @@ def collection():
 # 取消收藏
 @bp.route('/delete_favorites', methods=['POST'])
 def delete_favorites():
-    cookies = request.cookies
-    if cookies.get('username') and request.form.get('username') == cookies.get('username'):
-        users = User.query.filter_by(username=cookies.get('username')).first()
+
+    if 1:
+        users = User.query.filter_by(username=request.form.get('username')).first()
         # 查询用户收藏表
         for favorite in users.favorites:
             food = Food.query.filter_by(id=favorite.food_id).first()
@@ -187,113 +175,49 @@ def delete_favorites():
         return jsonify({'code': 200, 'msg': '错误'})
 
 
-# 内容带翻页
-# @bp.route('/context')
-# def context():
-#     # 获取cookies
-#     cookies = request.cookies
-#     # 如果cookies存在
-#     if cookies.get('username'):
-#         # 页数 默认设置成1
-#         page = request.args.get('page', 1, type=int)
-#         # 每页现实的数据 默认设置成1
-#         per_page = request.args.get('per_page', 1, type=int)
-#         #
-#         p = User.query.paginate(page=page, per_page=per_page, error_out=False)
-#         # 初始化一个空列表来存储用户名(此处放返回的内容)
-#         usernames = []
-#
-#         # 遍历分页对象中的每个 User 实例
-#         for item in p.items:
-#             # 添加用户名到列表中
-#             usernames.append(item.username)
-#
-#         return jsonify({'code': 200, 'msg': "成功", 'data': usernames})
-#     else:
-#         # cookies不存在重定向到登录界面
-#         sleep(0.2)
-#         return redirect('/login')
 
 
-# @bp.before_request  # 简单反爬
-# def before_request():
-#     ip = request.remote_addr
-#     if cache.get(ip):
-#         return "爬虫"
-#     else:
-#         cache.set(ip, 'value', timeout=0.1)
 
-# 多对多测试test
-@bp.route('/test', methods=['POST'])
-def test_view():
-    # 查询rp打过分的食物和他的评分
-    users = User.query.filter_by(username='rp').first()
-    for food in users.ratings:
-        foods = Food.query.filter_by(id=food.id).first()
-        score = food.score
-        print(foods.name)
-        print(score)
+@bp.route('/rate', methods=['POST'])
+def rate_view():
+    # 验证评分范围
+    if request.form['score'] == '' or float(request.form['score']) > 5 or float(request.form['score']) < 0:
+        return jsonify({'code': 400, 'msg': '请输入评分0-5之间的评分'})  # 修改返回代码为400表示请求错误
 
-    # for rating in users.ratings:
-    #     print(rating.score)
+    users = User.query.filter_by(username=request.form.get('username')).first()
+    foods = Food.query.filter_by(name=request.form['dishname']).first()
 
-    print('___________________')
+    # 查找用户的评分记录
+    existing_rating = Rating.query.filter_by(user_id=users.id, food_id=foods.id).first()
 
-    foods = Food.query.filter_by(name='宫保鸡丁').first()
-    account = 0
-    for rating in foods.ratings:
-        print(rating.score)
-        account += rating.score
+    if existing_rating:
+        # 更新评分
+        existing_rating.score = request.form['score']
+    else:
+        # 添加新评分
+        existing_rating = Rating(user_id=users.id, food_id=foods.id, score=request.form['score'])
+        db.session.add(existing_rating)
 
-    average_score = account / len(list(foods.ratings))
-    print(foods.name + '平均分' + str(average_score))
+    db.session.commit()
+
+    # 计算食物的平均分
+    account = sum(rating.score for rating in foods.ratings)  # 使用评分的总和
+    total_ratings = Rating.query.filter_by(food_id=foods.id).count()  # 获取评分数量
+    average_score = account / total_ratings if total_ratings > 0 else 0  # 防止除以零
     foods.average_score = average_score
     db.session.commit()
 
-    return 'ok'
+    return jsonify({'code': 200, 'msg': '成功'})
 
-
-# 进行评分
-@bp.route('/rate', methods=['POST'])
-def rate_view():
-    cookies = request.cookies
-    # 验证
-    if cookies.get('username') and request.form['username'] == cookies.get('username'):
-        if request.form['score'] == '' or float(request.form['score']) > 5 or float(request.form['score']) < 1:
-            return jsonify({'code': 200, 'msg': '请输入评分1-5之间的评分'})
-
-        users = User.query.filter_by(username=cookies.get('username')).first()
-        foods = Food.query.filter_by(name=request.form['dishname']).first()
-        for rating in users.ratings:
-            # 如果该用户的评分表里含有这个食物的id，不能重复评分
-            if rating.food_id == foods.id:
-                return jsonify({'code': 200, 'msg': '无法重复评分'})
-        # 添加评分
-        rate = Rating(user_id=users.id, food_id=foods.id, score=request.form['score'])
-        db.session.add(rate)
-        db.session.commit()
-
-        account: float = 0
-        for rating in foods.ratings:
-            # 算出食物总分
-            account += rating.score
-        # 计算平均分
-        average_score = account / len(list(foods.ratings))
-        # print(foods.name + '平均分' + str(average_score))
-        foods.average_score = average_score
-        db.session.commit()
-
-        return jsonify({'code': 200, 'msg': '成功'})
 
 
 # 修改密码
 @bp.route('/change', methods=['POST'])
 def change():
-    cookies = request.cookies
-    if request.form.get('username') == "" or request.form.get('password') == "" or cookies.get(
-            'username') != request.form.get('username'):
+
+    if request.form.get('username') == "" or request.form.get('password') == "" :
         return jsonify({'code': 200, 'msg': '未输入密码或出现错误'})
-    if cookies.get('username'):
+    if 1:
         users = User.query.filter_by(username=request.form['username']).first()
         users.password = request.form['password']
         db.session.commit()
@@ -305,9 +229,20 @@ def change():
 # 协同过滤推荐 个性化推荐
 @bp.route('/recommend', methods=['get'])
 def recommend():
-    cookies = request.cookies
-    if not cookies.get('username'):
-        return jsonify({'code': 200, 'msg': "错误"})
+    users = User.query.filter_by(username=request.args.get('username')).first()
+    # 如果用户没有评过分
+    if list(users.ratings) is not None:
+        random_integer11 = random.randint(1, 2337)
+        random_integer21 = random.randint(1, 2337)
+        food01 = Food.query.filter_by(id=random_integer11).first()
+        food11 = Food.query.filter_by(id=random_integer21).first()
+        food21 = Food.query.filter_by(name='奶油夹心马卡龙').first()
+        food31 = Food.query.filter_by(name='辣子鸡丁').first()
+        foods_all1 = [[food01.name, food01.image], [food11.name, food11.image], [food21.name, food21.image],
+                     [food31.name, food31.image]]
+        return jsonify({'code': 200, 'msg': '成功', 'data': foods_all1})
+
+
     ratings = Rating.query.all()
     rating_list = []
     for rating in ratings:
@@ -332,7 +267,7 @@ def recommend():
             # 将次键和值添加到对应主键的字典中
         data[key1][key2] = value
 
-    print(data)
+    # print(data)
 
     def Euclid(user1: int, user2: int):
         # 取出两位用户打过分的食物和评分
@@ -356,7 +291,7 @@ def recommend():
                 similar = Euclid(user_id, userid)
                 res.append((userid, similar))
         res.sort(key=lambda val: val[1])
-        print(res)
+        # print(res)
         return res
 
     def recommend(user):
@@ -377,14 +312,27 @@ def recommend():
 
 
     food_all = []
-    users = User.query.filter_by(username=cookies.get('username')).first()
-    for food_id in recommend(users.id):
-        foods = Food.query.filter_by(id=food_id[0]).first()
-        food_name_image = [foods.name,foods.image]
-        food_all.append(food_name_image)
-    print(food_all)
 
-    return jsonify({'code': 200, 'msg': '成功', 'data': food_all})
+
+    if recommend(users.id):
+        for food_id in recommend(users.id):
+            foods = Food.query.filter_by(id=food_id[0]).first()
+            food_name_image = [foods.name, foods.image]
+            food_all.append(food_name_image)
+        # print(food_all)
+        return jsonify({'code': 200, 'msg': '成功', 'data': food_all})
+    else:
+        random_integer1 = random.randint(1, 2337)
+        random_integer2 = random.randint(1, 2337)
+        food0 = Food.query.filter_by(id=random_integer1).first()
+        food1 = Food.query.filter_by(id=random_integer2).first()
+        food2 = Food.query.filter_by(name='奶油夹心马卡龙').first()
+        food3 = Food.query.filter_by(name='辣子鸡丁').first()
+        foods_all =[[food0.name, food0.image], [food1.name, food1.image], [food2.name, food2.image], [food3.name, food3.image]]
+        return jsonify({'code': 200, 'msg': '成功', 'data': foods_all})
+
+
+
 
 
 # ————————————————————————————————————————————————————————
@@ -455,20 +403,20 @@ def info():
 @bp.route('/classes', methods=['GET'])
 def classes():
     categories = {
-        "按菜品口味": ['超辣', '葱香', '怪味', '味', '酱香', '咖喱', '苦味', '麻辣', '麻香', '奶香', '其他', '清淡',
-                       '酸辣', '酸甜', '酸咸', '蒜香', '甜辣', '甜味', '甜香', '微辣', '五香', '咸甜', '成鲜', '咸香',
-                       '香草', '香辣', '鱼香', '原味', '褶香', '中辣', '孜然'],
+        "按菜品口味": ['超辣', '葱香', '怪味', '果味', '酱香', '咖喱', '苦味', '麻辣', '麻香', '奶香', '清淡',
+                       '酸辣', '酸甜', '酸咸', '蒜香', '甜辣', '甜味', '甜香', '微辣', '五香', '咸甜', '咸鲜', '咸香',
+                       '香草', '香辣', '鱼香', '原味', '糟香', '中辣', '孜然'],
         "按所需时间": ['半小时', '廿分钟', '三刻钟', '十分钟', '数天', '数小时', '一天', '一小时'],
         "按制作难度": ['简单', '普通', '高级', '神级'],
-        "按主要工艺": ['扒', '蒸', '拔丝', '煮', '拌', '堡', '爆', '焯', '侗咔', '炖', '干煸', '干锅', '烘焙', '烩',
-                       '火锅', '技巧', '煎', '酱', '焗', '烤', '烙', '冷冻', '溜', '卤', '焖', '其他', '炝', '砂锅',
-                       '烷', '生鲜', '酥', '铁板', '氽', '微波', '煨', '熏', '腌', '炸'],
+        "按主要工艺": ['扒', '蒸', '拔丝', '煮', '拌', '堡', '爆', '焯', '炒', '调味', '炖', '干煸', '干锅', '烘焙', '烩',
+                       '火锅', '技巧', '煎', '酱', '焗', '烤', '烙', '冷冻', '溜', '卤', '焖', '炝', '砂锅',
+                       '烧', '生鲜', '酥', '铁板', '氽', '微波', '煨', '熏', '腌', '炸', '榨汁'],
         "常见菜式": ['海鲜', '烘焙', '火锅', '家常菜', '烤箱菜', '凉菜', '零食', '泡酱腌菜', '热菜', '汤羹', '西餐',
                      '小吃', '宴客菜', '饮品', '主食', '自制食材'],
         "场景": ['二人世界', '开胃菜', '快餐', '快手菜', '私房菜', '宿舍时代', '西式宴请', '下午茶', '野餐', '早餐',
                  '中式宴请'],
         "节日食俗": ['白露', '雨水', '处暑', '元宵节', '春分', '中秋', '大寒', '重阳节', '大暑', '大雪', '冬至',
-                     '端午节', '儿童节', '二月二', '父亲节', '谷雨', '寒露', '节日习俗', '惊蛰', '腊八', '立春', '立冬',
+                     '端午节', '儿童节', '二月二', '父亲节', '复活节', '感恩节', '谷雨', '寒露', '节日习俗', '惊蛰', '腊八', '立春', '立冬',
                      '立秋', '立夏', '芒种', '母亲节', '年夜饭', '七夕', '清明', '情人节', '秋分', '圣诞节', '霜降',
                      '贴秋膘', '万圣节', '夏至', '小寒', '小满', '小暑', '小雪'],
         "食疗食补": ['便秘', '补钙', '防辐射', '护肝明目', '减肥瘦身', '健康食谱', '健脾养胃', '抗过敏', '流感',
@@ -479,14 +427,14 @@ def classes():
                      '甜品'],
         "外国美食": ['法国菜', '韩国料理', '墨西哥菜', '日本料理', '泰国菜', '外国美食', '西班牙菜', '意大利菜',
                      '印度菜', '英国菜', '越南菜'],
-        "饮食方式": ['春季食谱', '冬季食谱', '高颜值', '清真菜', '秋季食谱', '系菜', '糸食', '夏季食谱', '小清新'],
-        "中式菜": ['澳门美食', '北京菜', '川菜', '东北菜', '菜', '赣菜', '贵州菜', '淮扬菜', '徽菜', '晋菜', '客家菜',
-                   '鲁菜', '闫菜', '上海菜', '苏菜', '台湾美食', '西北菜', '香港美食', '湘菜', '新疆菜', '豫菜', '菜',
+        "饮食方式": ['春季食谱', '冬季食谱', '高颜值', '清真菜', '秋季食谱', '素菜', '素食', '夏季食谱', '小清新'],
+        "中式菜系": ['澳门美食', '北京菜', '川菜', '东北菜', '鄂菜', '赣菜', '贵州菜', '淮扬菜', '徽菜', '晋菜', '客家菜',
+                   '鲁菜', '闽菜', '上海菜', '苏菜', '台湾美食', '西北菜', '香港美食', '湘菜', '新疆菜', '豫菜', '粤菜',
                    '云南菜', '浙菜', '中式菜系'],
         "主食小吃": ['包子', '北京小吃', '饼', '炒饭', '东北小吃', '福建小吃', '广东小吃', '河南小吃', '湖北小吃',
                      '湖南小吃', '馄饨', '江西小吃', '江浙小吃', '饺子', '馒头花卷', '米饭', '面食', '面条', '山东小吃',
                      '山西小吃', '陕西小吃', '上海小吃', '四川小吃', '台湾小吃', '天津小吃', '五谷杂粮', '西北小吃',
-                     '云贵小吃', '重庆小吃'],
+                     '云贵小吃', '重庆小吃', '粥'],
         "传统美食": ['传统美食', '春饼', '春卷', '腊八粥', '青团', '汤圆', '元宵', '月饼', '粽子'],
         "烘焙": ['饼干', '蛋糕', '蛋糕卷', '翻糖', '玛芬蛋糕', '面包', '慕斯', '奶油蛋糕', '派塔', '批萨', '戚风蛋糕',
                  '曲奇', '乳酪蛋糕', '吐司', '芝士蛋糕', '纸杯蛋糕']
@@ -495,15 +443,14 @@ def classes():
     return jsonify({'code': 200, 'msg': "成功", 'data': categories})
 
 # ————————————————————————————————————————————————————————————————————————————————
-@bp.route('/search', methods=['POST'])  # 搜索食物内容
+# 搜索食物内容
+@bp.route('/search', methods=['POST'])
 def search_food():
-    # Get the search keyword from the request
+
     key = request.form.get('key', '')
 
-    # Query the database for food items with matching names
     foods = Food.query.filter(Food.name.ilike(f'%{key}%')).all()
 
-    # Prepare the response data
     food_list = []
     for food in foods:
         food_list.append(food.name)
@@ -511,24 +458,25 @@ def search_food():
     return jsonify({'code': 200, 'msg': '成功', 'data': food_list})
 
 
-@bp.route('/comment', methods=['POST'])  # 发表评论
+# 发表评论
+@bp.route('/comment', methods=['POST'])
 def post_comment():
-    # Get data from request
+
     user_name = request.form.get('username')
     food_name = request.form.get('dishname')
     content = request.form.get('comment')
 
-    # Validate input
+
     if not user_name or not food_name or not content:
         return jsonify({'code': 200, 'msg': '请输入评论'})
 
-    # Check if user and food exist
+
     user = User.query.filter_by(username=user_name).first()
     food = Food.query.filter_by(name=food_name).first()
     if not user or not food:
         return jsonify({"msg": "User or food not found"}), 404
 
-    # Create new comment
+
     new_comment = Comment(user_id=user.id, food_id=food.id, content=content)
     db.session.add(new_comment)
     db.session.commit()
@@ -536,7 +484,8 @@ def post_comment():
     return jsonify({'code': 200, 'msg': '成功'})
 
 
-@bp.route('/dishname_comment', methods=['POST'])  # 获取评论
+# 获取评论
+@bp.route('/dishname_comment', methods=['POST'])
 def get_food_evaluations():
     food_name = request.form.get('dishname')
     if not food_name:
@@ -549,7 +498,11 @@ def get_food_evaluations():
         food_comments = food.content
         users = User.query.filter_by(id=food.user_id).first()
         rating = Rating.query.filter_by(food_id=food_id, user_id=users.id).first()
-        temp = [users.username, food_comments, rating.score]
+        if rating:
+            temp = [users.username, food_comments, rating.score]
+        else:
+            temp = [users.username, food_comments, 3]
+
         result.append(temp)
 
     return jsonify({'code': 200, 'msg': '成功', 'data': result})
