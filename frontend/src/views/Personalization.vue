@@ -16,8 +16,8 @@
               <input type="text" id="type" class="form-control" :value="food.bigtype || '无信息'" readonly />
             </div>
             <div class="mb-3">
-              <label for="rating" class="form-label">评分</label>
-              <d-rate type="warning" v-model="food.score" :allow-half="true" @change="change" />
+              <label for="rating" :value="food.score" class="form-label">评分</label>
+              <d-rate type="warning" v-model="newRating" :allow-half="true" @dblclick="addScore" />
             </div>
             <div class="mt-3">
               <label for="desc" class="form-label">描述</label>
@@ -45,14 +45,14 @@
               <div class="flex-grow-1">
                 <h6 class="mb-0">{{ comment.user || "匿名用户" }}</h6>
                 <p class="mb-0">{{ comment.avatar }}</p>
-                <d-rate type="warning" :read="true" v-model="comment.message" />
+                <d-rate type="warning" :read="true" :allow-half="true" v-model="comment.message" />
               </div>
             </div>
           </div>
         </div>
 
         <div class="fixed-input-container">
-          <d-rate v-model="newRating" type="warning" :allow-half="true" />
+          <!-- <d-rate v-model="newRating" type="warning" :allow-half="true" /> -->
           <input width="500" type="text" v-model="newComment" class="form-control mt-2" placeholder="添加评论..." />
           <button class="btn btn-primary btn-sm mt-2" @click="addComment">提交</button>
         </div>
@@ -81,7 +81,7 @@ const newRating = ref(0); // 新增评分
 const isFavorited = ref(false);
 
 const isCommentAdded = ref(false); // 用于监视评论是否已添加
-
+const isRatingAdded = ref(false); // 用于监视评论是否已添加
 // 组件挂载时获取食物信息
 onMounted(async () => {
   const dishname = route.params.name; // 从路由参数中获取菜品名称
@@ -96,7 +96,18 @@ watch(isCommentAdded, async (newValue) => {
     await fetchComments(dishname); // 重新获取评论
     isCommentAdded.value = false; // 重置状态
 
-    router.go(0);
+    // router.go(0);
+  }
+});
+
+// 监视评论是否已添加
+watch(isRatingAdded, async (newValue) => {
+  if (newValue) {
+    const dishname = food.value.name; // 获取菜品名称
+    await fetchComments(dishname); // 重新获取评论
+    isRatingAdded.value = false; // 重置状态
+
+    // router.go(0);
   }
 });
 
@@ -138,10 +149,12 @@ const fetchComments = async (dishname) => {
   try {
     const response = await axios.post('http://localhost:5000/dishname_comment', formData);
     if (response.data.code === 200) {
+      console.log(response.data);
       comments.value = response.data.data.map(comment => ({
         user: comment[0] || "匿名用户",
         avatar: comment[1] , // 确保头像路径正确
-        message: comment[2],
+        message: parseFloat(comment[2]),
+             
        
       }));
     } else {
@@ -152,39 +165,63 @@ const fetchComments = async (dishname) => {
   }
 };
 
-// 添加评论
-const addComment = () => {
-  if (!newComment.value || newRating.value === 0) {
-    console.error('评论内容和评分不能为空');
-    return;
-  }
-
+// 添加评分
+const addScore = async () => {
+  
   const formData = new FormData();
   const userName = store.state.username;
   formData.append('username', userName);
   formData.append('dishname', food.value.name);
-  formData.append('comment', newComment.value);
-  formData.append('rating', newRating.value);
+  formData.append('score', newRating.value); // 确保使用 'score' 字段
 
-  axios.post(`http://localhost:5000/comment`, formData)
-    .then(response => {
+  try {
+    const response = await axios.post('http://localhost:5000/rate', formData);
+    if (response.data.code === 200) {
+      isRatingAdded.value = true;
+      console.log('评分成功:', response.data);
+      return true; // 评分成功返回 true
+    } else {
+      console.error("评分失败:", response.data.msg);
+      return false; // 评分失败返回 false
+    }
+  } catch (error) {
+    console.error('添加评分时出错:', error);
+    return false; // 发生错误返回 false
+  }
+};
+
+// 添加评论
+const addComment = async () => {
+  if (!newComment.value) {
+    console.error('评论内容不能为空');
+    return;
+  }
+
+  // 首先添加评分
+  const scoreSuccess = await addScore();
+  if (scoreSuccess) {
+    const formData = new FormData();
+    const userName = store.state.username;
+    formData.append('username', userName);
+    formData.append('dishname', food.value.name);
+    formData.append('comment', newComment.value);
+
+    try {
+      const response = await axios.post('http://localhost:5000/comment', formData);
       if (response.data.code === 200) {
         isCommentAdded.value = true; // 标记评论已添加
-        // comments.value.unshift({
-        //   user: userName,
-        //   message: newComment.value,
-        //   rating: newRating.value,
-        // });
-        // newComment.value = '';
-        // newRating.value = 0;
+        console.log('评论成功:', response.data);
+        newComment.value = '';
+        newRating.value = 0; // 重置评分
       } else {
-        console.error("Error message:", response.data.msg);
+        console.error("评论失败:", response.data.msg);
       }
-    })
-    .catch(error => {
-      console.error('Error adding comment:', error);
-    });
+    } catch (error) {
+      console.error('添加评论时出错:', error);
+    }
+  }
 };
+
 
 // 收藏功能
 const addToCollection = async () => {
@@ -200,6 +237,7 @@ const addToCollection = async () => {
     if (response.data.code === 200) {
       isFavorited.value = true;
       console.log('成功收藏:', dishname);
+
       router.push({ name: '收藏', query: { foodName: dishname, timestamp: new Date().toLocaleString() } });
     } else {
       console.error('收藏失败:', response.data.msg);
@@ -229,7 +267,7 @@ const addToCollection = async () => {
 }
 
 .comments-area {
-  max-height: 300px;
+  max-height: 200px;
   overflow-y: auto;
   margin-bottom: 20px;
 }

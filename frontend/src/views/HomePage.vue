@@ -11,7 +11,7 @@
         <option v-for="(item, index) in subCategories" :key="index" :value="item">{{ item }}</option>
       </select>
 
-      <d-button class="btn btn-refresh" @click="refreshRankings">刷新排行榜</d-button>
+      <!-- <d-button class="btn btn-refresh" @click="refreshRankings">刷新排行榜</d-button> -->
     </div>
 
     <div class="content-boxes row">
@@ -55,8 +55,9 @@
 import { useRouter } from 'vue-router';
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
-
+import { useStore } from 'vuex';
 const router = useRouter();
+const store = useStore();
 
 // 下拉框选择项
 const selected1 = ref('');
@@ -66,12 +67,38 @@ const selected4 = ref('');
 const categories = ref([]);
 const subCategories = ref([]);
 
-// 轮播图数据，添加默认图片
-const foodImages = ref([
-  { img: 'https://i3.meishichina.com/atta/recipe/2024/09/11/202409111726022291787446749884.jpg?x-oss-process=style/p800', name: '麻婆豆腐' },
-  { img: 'https://i3.meishichina.com/atta/recipe/2024/08/08/2024080817231025336609052270985.JPG?x-oss-process=style/p800', name: '默认菜品2' },
-  { img: 'https://i3.meishichina.com/atta/recipe/2024/09/03/2024090317253472755819538010238.JPG?x-oss-process=style/p800', name: '默认菜品3' },
-]);
+const foodImages = ref([]); // 初始为空
+
+// 获取推荐数据
+const fetchRecommendations = async (username) => {
+  try {
+    const response = await axios.get('http://localhost:5000/recommend', {
+      params: { username: username }
+    });
+    
+    if (response.data.code === 200) {
+      foodImages.value = response.data.data.map(item => ({
+        img: item[1], // 图片 URL
+        name: item[0] // 菜品名称
+      }));
+    } else {
+      console.error("获取推荐失败:", response.data.msg);
+      // 可以添加默认图片
+      foodImages.value = [
+        { img: 'default_image_url_1', name: '默认菜品1' },
+        { img: 'default_image_url_2', name: '默认菜品2' },
+      ];
+    }
+  } catch (error) {
+    console.error("请求推荐时出错:", error);
+    // 添加默认图片
+    foodImages.value = [
+      { img: 'default_image_url_1', name: '默认菜品1' },
+      { img: 'default_image_url_2', name: '默认菜品2' },
+    ];
+  }
+};
+
 
 // 排行榜数据
 const rankings = ref([]);
@@ -79,6 +106,12 @@ const rankings = ref([]);
 // 组件挂载时获取类别数据
 onMounted(async () => {
   await fetchCategories();
+});
+
+// 在组件挂载时获取推荐数据
+onMounted(() => {
+  const username = store.state.username; // 从 Vuex 或其他地方获取当前用户名
+    fetchRecommendations(username);
 });
 
 // 获取类别数据
@@ -129,10 +162,6 @@ const fetchRankings = () => {
 };
 
 
-// 刷新排行榜
-const refreshRankings = async () => {
-  await fetchRankings();
-};
 
 // 获取菜品图片数据
 const fetchFoodImages =  (dishname) => {
@@ -228,7 +257,7 @@ watch(selected4, async () => {
   text-align: center;
   padding: 20px;
   flex: 1;
-  background-color: aqua;
+  background-color: rgb(15, 161, 125);
 }
 
 .btn-refresh {

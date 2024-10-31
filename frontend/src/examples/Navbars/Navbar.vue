@@ -68,16 +68,18 @@ const handleSearchIconClick = () => {
   if (searchKey.value) {
     navigateToFoodDetail(searchKey.value); // 跳转到当前输入的食物详情
     console.log('666');
-    
+
   }
 };
 
 // 通用跳转函数
 const navigateToFoodDetail = (dishname) => {
   router.replace({ name: '个性化推荐', params: { name: dishname } }); // 跳转到个性化推荐页面
-  
- 
+  setTimeout(() => {
+    router.go(0);
+  }, 0); // 使用 setTimeout 确保在跳转后执行
 };
+
 
 </script>
 
@@ -130,7 +132,7 @@ const navigateToFoodDetail = (dishname) => {
               data-bs-toggle="dropdown" aria-expanded="false" @click="showMenu = !showMenu" @blur="closeMenu">
               <i class="cursor-pointer fa fa-bell"></i>
             </a>
-            <ul class="px-2 py-3 dropdown-menu dropdown-menu-end me-sm-n4" :class="showMenu ? 'show' : ''"
+            <!-- <ul class="px-2 py-3 dropdown-menu dropdown-menu-end me-sm-n4" :class="showMenu ? 'show' : ''"
               aria-labelledby="dropdownMenuButton">
               <li class="mb-2">
                 <a class="dropdown-item border-radius-md" href="javascript:;">
@@ -205,7 +207,7 @@ const navigateToFoodDetail = (dishname) => {
                   </div>
                 </a>
               </li>
-            </ul>
+            </ul> -->
           </li>
         </ul>
       </div>

@@ -17,74 +17,45 @@ username.value = store.state.username; // 从 Vuex 中获取当前用户名
 const change = () => {
     const formData = new FormData();
     formData.append("username", username.value); // 使用 Vuex 中的用户名
-    // formData.append("password", password.value);
+    formData.append("password", password.value);
 
     console.log("准备发送的数据：", {
         username: username.value,
         password: password.value,
     });
 
-    axios.post("http://localhost:5000/change", formData,{
-        withCredentials: true // 确保请求中带上 Cookie
-    })
-        .then((response) => {
+    axios.post("http://localhost:5000/change", formData)
+        .then(async (response) => {
             console.log(response.data);
 
             if (response.data.code === 200) {
                 console.log("用户信息修改成功");
-                console.log(response);
-                
                 alert("用户信息修改成功，请重新登录。");
-                router.push("/signin"); // 修改成功后跳转到登录页面
+
+                // 注销逻辑
+                try {
+                    const logoutResponse = await axios.get("http://localhost:5000/logout");
+                    if (logoutResponse.data.code === 200) {
+                        console.log("注销成功");
+                        store.commit("setUsername", "游客"); // 设置为游客状态
+                        router.push("/HomePage");
+                    } else {
+                        console.error("注销失败:", logoutResponse.data.msg);
+                    }
+                } catch (error) {
+                    console.error("注销时出错:", error);
+                }
             } else {
                 console.error("修改用户信息失败:", response.data.msg);
-                console.log(response);
-                
                 alert(`修改失败: ${response.data.msg}`); // 提示用户失败原因
             }
         })
         .catch((error) => {
             console.error("Error:", error);
             alert("修改过程中出现错误，请稍后再试。"); // 提示用户发生错误
-            
-            
         });
 };
 
-
-
-
-// const change = async () => {
-//     const formData = new URLSearchParams();
-//     formData.append("username", username.value); // 使用 Vuex 中的用户名
-//     formData.append("password", password.value);
-
-//     try {
-//         // 发送 POST 请求到后端
-//         const response = await axios.post("http://localhost:5000/change", formData, {
-//             headers: {
-//                 "Content-Type": "application/x-www-form-urlencoded",
-//             },
-//         });
-
-//         // 检查请求是否成功
-//         if (response.data.code === 200) {
-//             console.log("用户信息修改成功");
-//             console.log("Username:", username.value);
-//             console.log("Password:", password.value);
-//             console.log(response);
-//            console.log(response.data);
-           
-
-            
-//             router.push("/signin"); // 修改成功后跳转到登录页面
-//         } else {
-//             console.error("修改用户信息失败:", response.data.msg);
-//         }
-//     } catch (error) {
-//         console.error("Error:", error);
-//     }
-// };
 </script>
 
 <template>
@@ -93,13 +64,14 @@ const change = () => {
 
         <div class="input-container">
             <label for="username">账号</label>
-            <argon-input v-model="username" id="username" type="text" placeholder="输入账号" name="username" size="lg"  />
+            <argon-input v-model="username" id="username" type="text" placeholder="输入账号" name="username" size="lg" />
         </div>
 
         <!-- 仅当用户名不是"游客"时显示密码输入框 -->
         <div class="input-container" v-if="username !== '游客'">
             <label for="password">密码</label>
-            <argon-input v-model="password" id="password" type="password" placeholder="输入新密码" name="password" size="lg" />
+            <argon-input v-model="password" id="password" type="password" placeholder="输入新密码" name="password"
+                size="lg" />
         </div>
 
         <button class="submit-btn" @click="change" v-if="username !== '游客'">修改</button>

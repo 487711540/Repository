@@ -11,6 +11,7 @@ const currentPage = ref(1);
 const itemsPerPage = ref(7);
 const totalItems = ref(0);
 
+
 // 定义收藏数组
 const favorites = ref([]);
 
@@ -89,7 +90,7 @@ const router = useRouter();
 
 // 定义跳转到食物详情的函数
 const goToFoodDetail = (dishname) => {
-  router.push({ name: 'food-detail', query: { foodName: dishname } });
+  router.push({ name: '个性化推荐', params: { name: dishname } });
 };
 
 </script>
@@ -108,7 +109,7 @@ const goToFoodDetail = (dishname) => {
               <tr>
                 <th>菜品名称</th>
                 <th>分类</th>
-                <th class="text-center">收藏时间</th>
+                
                 <th class="text-center"><i class="ni ni-settings-gear-65"></i></th>
               </tr>
             </thead>
@@ -116,7 +117,6 @@ const goToFoodDetail = (dishname) => {
               <tr v-for="(favorite, index) in displayedFavorites" :key="index">
                 <td @click="goToFoodDetail(favorite[0])">{{ favorite[0] }}</td>
                 <td>{{ favorite[1] }}</td>
-                <td class="text-center">{{ favorite[2] }}</td>
                 <td class="text-center">
                   <a href="javascript:;" @click="deleteFavorite(favorite[0])">删除</a>
                 </td>

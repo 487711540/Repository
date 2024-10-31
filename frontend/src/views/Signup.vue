@@ -14,7 +14,7 @@ const router = useRouter();
 const username = ref("");
 const password = ref("");
 const confirmPassword = ref("");
-const selectedTags = ref([]); // 选择的喜好
+
 
 // 组件挂载前的处理
 onBeforeMount(() => {
@@ -53,25 +53,9 @@ const handleRegistration = async () => {
 
     if (registerResponse.data.code === 200) {
       console.log("注册成功:", registerResponse.data);
-      // store.commit("setToken", registerResponse.data.token); // 保存用户Token
-
-      // 选择喜好
-      const chooseFormData = new URLSearchParams();
-      chooseFormData.append("username", username.value);
-      chooseFormData.append("tags", selectedTags.value.join(",")); // 将选中的喜好标签以逗号分隔的形式传递
-
-      const chooseResponse = await axios.post("http://localhost:5000/choose", chooseFormData, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
-
-      if (chooseResponse.data.code === 200) {
-        console.log("喜好选择成功:", chooseResponse.data);
-        router.push("/signin"); // 跳转到登录页面
-      } else {
-        alert(chooseResponse.data.msg);
-      }
+      
+      router.push("/signin")
+      
     } else {
       alert(registerResponse.data.msg || "注册失败，请检查信息是否正确");
     }
@@ -145,21 +129,7 @@ const goBack = () => {
             </div>
           </div>
 
-          <!-- 选择喜好的部分 -->
-          <div class="row d-flex align-items-center justify-content-center mb-3">
-            <div class="col-auto">
-              <label for="preferences" class="form-label">选择喜好</label>
-            </div>
-            <div class="col-xl-4 col-lg-5 col-md-7">
-              <select v-model="selectedTags" multiple class="form-select">
-                <option value="甜">甜</option>
-                <option value="咸">咸</option>
-                <option value="辣">辣</option>
-                <option value="酸">酸</option>
-                <option value="鲜">鲜</option>
-              </select>
-            </div>
-          </div>
+
 
           <div class="row d-flex justify-content-center mt-4">
             <div class="col-xl-4 col-lg-5 col-md-7">

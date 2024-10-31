@@ -40,7 +40,7 @@ const darkMode = computed(() => store.state.darkMode);
           alt="main_logo"
         /> -->
 
-        <span class="ms-2 font-weight-bold me-2">原神大本营</span>
+        <span class="ms-2 font-weight-bold me-2">花开福德</span>
       </router-link>
     </div>
 

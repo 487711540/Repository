@@ -44,7 +44,7 @@ const logout = async () => {
         if (response.data.code === 200) {
             console.log("注销成功");
             store.commit("setUsername", "游客"); // 设置为游客状态
-            router.push("/HomePage"); // 重定向到登录页面
+            router.push("/HomePage");
         } else {
             console.error("注销失败:", response.data.msg);
         }
@@ -52,6 +52,10 @@ const logout = async () => {
         console.error("注销时出错:", error);
     }
 };
+
+const complete =()=>{
+    router.push("/HomePage")
+}
 
 </script>
 
@@ -91,17 +95,6 @@ const logout = async () => {
                     <option disabled selected value>请选择</option>
                     <option value="light">白天</option>
                     <option value="dark">夜间</option>
-                </select>
-            </div>
-
-            <!-- 切换账号 -->
-            <div class="d-flex align-items-center justify-content-center mt-3">
-                <h6 class="mb-0 me-2">切换账号</h6>
-                <select class="form-select" @change="switchAccount($event)">
-                    <option disabled selected value>请选择</option>
-                    <option value="account1">账号1</option>
-                    <option value="account2">账号2</option>
-                    <option value="account3">账号3</option>
                 </select>
             </div>
 
