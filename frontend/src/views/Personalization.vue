@@ -87,6 +87,7 @@ onMounted(async () => {
   const dishname = route.params.name; // 从路由参数中获取菜品名称
   await fetchFoodData(dishname);
   await fetchComments(dishname);
+  loadUserRating(dishname); // 加载用户评分
 });
 
 // 监视评论是否已添加
@@ -126,7 +127,7 @@ const fetchFoodData = async (dishname) => {
         img: response.data.data.img,
         score: response.data.data.score,
       };
-
+    
       foodImages.value = response.data.data.images?.map((img, index) => ({
         id: `${dishname}-${index}`,
         img: img.url || response.data.data.img,
@@ -165,9 +166,18 @@ const fetchComments = async (dishname) => {
   }
 };
 
+// 加载用户评分
+const loadUserRating = (dishname) => {
+  const savedRating = localStorage.getItem(`rating_${dishname}`);
+  newRating.value = savedRating !== null ? parseFloat(savedRating) : 0; // 初始化评分
+};
+
+
+
 // 添加评分
 const addScore = async () => {
-  
+
+
   const formData = new FormData();
   const userName = store.state.username;
   formData.append('username', userName);
@@ -177,6 +187,7 @@ const addScore = async () => {
   try {
     const response = await axios.post('http://localhost:5000/rate', formData);
     if (response.data.code === 200) {
+      localStorage.setItem(`rating_${food.value.name}`, newRating.value); // 保存评分
       isRatingAdded.value = true;
       console.log('评分成功:', response.data);
       return true; // 评分成功返回 true
@@ -195,6 +206,10 @@ const addComment = async () => {
   if (!newComment.value) {
     console.error('评论内容不能为空');
     return;
+  }
+  if (!newRating.value) {
+    console.error('请先为菜品评分');
+    return false; // 如果没有评分，直接返回
   }
 
   // 首先添加评分
