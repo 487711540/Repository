@@ -30,7 +30,7 @@
       <!-- 右侧评论区 -->
       <div class="col-lg-8">
         <div class="d-flex justify-content-end mb-2">
-          <button class="btn btn-primary btn-sm" @click="addToCollection" :disabled="isFavorited">
+          <button class="btn btn-primary btn-sm" @click="addToCollection" :disabled="isLoading">
             {{ isFavorited ? '已收藏' : '收藏' }}
           </button>
         </div>
@@ -67,9 +67,9 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import axios from 'axios';
-import { useRouter } from 'vue-router';
+//import { useRouter } from 'vue-router';
 
-const router = useRouter();
+//const router = useRouter();
 const store = useStore();
 const route = useRoute();
 
@@ -79,16 +79,41 @@ const comments = ref([]);
 const newComment = ref('');
 const newRating = ref(0); // 新增评分
 const isFavorited = ref(false);
+const isLoading = ref(false); // 控制按钮加载状态
+
 
 const isCommentAdded = ref(false); // 用于监视评论是否已添加
 const isRatingAdded = ref(false); // 用于监视评论是否已添加
+
 // 组件挂载时获取食物信息
 onMounted(async () => {
   const dishname = route.params.name; // 从路由参数中获取菜品名称
   await fetchFoodData(dishname);
   await fetchComments(dishname);
   loadUserRating(dishname); // 加载用户评分
+
+  //await checkIfFavorited(dishname); // 检查菜品是否被收藏
+  checkIfFavorited();
 });
+
+
+// 检查菜品是否被收藏
+const checkIfFavorited = async (/* dishname */) => {
+  const formData = new FormData();
+  formData.append('dishname', /* dishname */food.value.name);
+  formData.append('username', store.state.username);
+
+  try {
+    const response = await axios.post('http://localhost:5000/check_favorites', formData);
+    if (response.data.code === 200) {
+      isFavorited.value = response.data.data.isFavorited; // 根据返回值设置收藏状态
+    } else {
+      console.error("检查收藏状态失败:", response.data.msg);
+    }
+  } catch (error) {
+    console.error('检查收藏状态时出错:', error);
+  }
+};
 
 // 监视评论是否已添加
 watch(isCommentAdded, async (newValue) => {
@@ -101,7 +126,7 @@ watch(isCommentAdded, async (newValue) => {
   }
 });
 
-// 监视评论是否已添加
+// 监视评分是否已添加
 watch(isRatingAdded, async (newValue) => {
   if (newValue) {
     const dishname = food.value.name; // 获取菜品名称
@@ -176,8 +201,6 @@ const loadUserRating = (dishname) => {
 
 // 添加评分
 const addScore = async () => {
-
-
   const formData = new FormData();
   const userName = store.state.username;
   formData.append('username', userName);
@@ -190,31 +213,36 @@ const addScore = async () => {
       localStorage.setItem(`rating_${food.value.name}`, newRating.value); // 保存评分
       isRatingAdded.value = true;
       console.log('评分成功:', response.data);
+      alert('评分成功！'); // 显示成功提示
       return true; // 评分成功返回 true
     } else {
       console.error("评分失败:", response.data.msg);
+      alert('评分失败: ' + response.data.msg); // 显示失败提示
       return false; // 评分失败返回 false
     }
   } catch (error) {
     console.error('添加评分时出错:', error);
+    alert('评分时出错，请稍后再试。'); // 显示错误提示
     return false; // 发生错误返回 false
   }
 };
 
 // 添加评论
 const addComment = async () => {
-  if (!newComment.value) {
+  if (!newComment.value.trim()) {
     console.error('评论内容不能为空');
+    alert('评论内容不能为空');
     return;
   }
   if (!newRating.value) {
     console.error('请先为菜品评分');
+    alert('请先为菜品评分');
     return false; // 如果没有评分，直接返回
   }
 
   // 首先添加评分
-  const scoreSuccess = await addScore();
-  if (scoreSuccess) {
+  //const scoreSuccess = await addScore();
+  //if (scoreSuccess) {
     const formData = new FormData();
     const userName = store.state.username;
     formData.append('username', userName);
@@ -225,16 +253,19 @@ const addComment = async () => {
       const response = await axios.post('http://localhost:5000/comment', formData);
       if (response.data.code === 200) {
         isCommentAdded.value = true; // 标记评论已添加
-        console.log('评论成功:', response.data);
-        newComment.value = '';
-        newRating.value = 0; // 重置评分
+        //console.log('评论成功:', response.data);
+        alert('评论成功！'); // 显示成功提示
+        newComment.value = ''; // 清空评论输入框
+        //newRating.value = 0; // 重置评分
       } else {
         console.error("评论失败:", response.data.msg);
+        alert('评论失败: ' + response.data.msg); // 显示失败提示
       }
     } catch (error) {
       console.error('添加评论时出错:', error);
+      alert('评论时出错，请稍后再试。'); // 显示错误提示
     }
-  }
+  //}
 };
 
 
@@ -247,20 +278,31 @@ const addToCollection = async () => {
   formData.append('dishname', dishname);
   formData.append('username', store.state.username);
 
-  try {
-    const response = await axios.post('http://localhost:5000/favorites', formData);
-    if (response.data.code === 200) {
-      isFavorited.value = true;
-      console.log('成功收藏:', dishname);
+  isLoading.value = true; // 开始加载
 
-      router.push({ name: '收藏', query: { foodName: dishname, timestamp: new Date().toLocaleString() } });
+  try {
+    if (isFavorited.value) {
+      const response = await axios.post('http://localhost:5000/delete_favorites', formData);
+      if (response.data.code === 200) {
+        isFavorited.value = false;
+        alert('取消收藏成功！');
+      }
     } else {
-      console.error('收藏失败:', response.data.msg);
+      const response = await axios.post('http://localhost:5000/favorites', formData);
+      if (response.data.code === 200) {
+        isFavorited.value = true;
+        alert('收藏成功！');
+      }
     }
   } catch (error) {
-    console.error('添加到收藏时出错:', error);
+    console.error('操作时出错:', error);
+    alert('操作时出错，请稍后再试。');
+  } finally {
+    isLoading.value = false; // 操作完成后结束加载
   }
 };
+
+
 </script>
 
 
@@ -282,7 +324,7 @@ const addToCollection = async () => {
 }
 
 .comments-area {
-  max-height: 200px;
+  height: 330px;
   overflow-y: auto;
   margin-bottom: 20px;
 }

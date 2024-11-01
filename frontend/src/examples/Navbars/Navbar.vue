@@ -82,6 +82,11 @@ const goToLogin = () => {
   router.push({ name: 'Signin' });
 };
 
+const login = (usernameFromDb) => {
+  if (usernameFromDb) {
+    store.commit("setUsername", usernameFromDb);
+  }
+};
 </script>
 
 <template>
@@ -93,6 +98,13 @@ const goToLogin = () => {
       <div class="mt-2 collapse navbar-collapse mt-sm-0 me-md-0 me-sm-4" :class="isRTL ? 'px-0' : 'me-sm-4'"
         id="navbar">
         <div class="pe-md-3 d-flex align-items-center" :class="isRTL ? 'me-md-auto' : 'ms-md-auto'">
+          
+          <div class="dianping-button-container">
+            <a href="https://www.dianping.com" class="dianping-button" target="_blank">
+              <i class="fa fa-star"></i> 大众点评
+            </a>
+          </div>
+
           <span @click="search" class="search-icon">🔍</span>
           <d-auto-complete
             v-model="searchKey"
@@ -148,5 +160,43 @@ const goToLogin = () => {
 </template>
 
 <style scoped>
-/* 如果需要自定义样式，可以在这里添加 */
+.dianping-button-container {
+  margin-right: 10px; /* 按钮与搜索框之间的间距 */
+}
+
+.dianping-button {
+  background-color: #FF6A00; /* 大众点评主色 */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px; /* 调整内边距 */
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px; /* 调整字体大小 */
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  transition: background-color 0.3s; /* 添加过渡效果 */
+}
+
+.dianping-button:hover {
+  background-color: #FF8C00; /* 悬停效果 */
+}
+
+.dianping-button i {
+  margin-right: 5px; /* 图标与文字之间的间距 */
+}
+
+.search-icon {
+  font-size: 20px; /* 放大镜图标的大小 */
+  transition: transform 0.3s, color 0.3s; /* 添加过渡效果 */
+  color: #555; /* 默认颜色 */
+  cursor: pointer; /* 默认光标样式 */
+}
+
+.search-icon:hover {
+  transform: scale(1.2); /* 悬停时放大图标 */
+  color: #FF6A00; /* 悬停时颜色变化 */
+  cursor: pointer; /* 悬停时光标变为手形 */
+}
+
 </style>
