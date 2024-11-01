@@ -121,7 +121,7 @@ const fetchCategories = async () => {
     if (response.data.code === 200) {
       categories.value = Object.keys(response.data.data);
       if (categories.value.length > 0) {
-        selected1.value = categories.value[0];
+        // selected1.value = categories.value[0];
         await fetchSubCategories();
       }
     }
